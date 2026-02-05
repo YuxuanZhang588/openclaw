@@ -106,7 +106,6 @@ class GatewaySession(
     options: GatewayConnectOptions,
     tls: GatewayTlsParams? = null,
   ) {
-    Log.d("OpenClawDebug", "GatewaySession.connect() called for endpoint: host=${endpoint.host}, port=${endpoint.port}, role=${options.role}")
     desired = DesiredConnection(endpoint, token, password, options, tls)
     if (job == null) {
       job = scope.launch(Dispatchers.IO) { runLoop() }
@@ -193,11 +192,15 @@ class GatewaySession(
 
     suspend fun connect() {
       val scheme = if (tls != null) "wss" else "ws"
-      val url = "$scheme://${endpoint.host}:${endpoint.port}"
-      Log.d("OpenClawDebug", "Connection.connect() building WebSocket URL: $url (endpoint.host=${endpoint.host}, endpoint.port=${endpoint.port})")
-      val request = Request.Builder().url(url).build()
-      Log.d("OpenClawDebug", "Request URL after builder: ${request.url}")
-      socket = client.newWebSocket(request, Listener())
+
+      // Build HttpUrl directly using Builder to ensure port is preserved
+      val httpUrlBuilder = okhttp3.HttpUrl.Builder()
+        .scheme(scheme)
+        .host(endpoint.host)
+        .port(endpoint.port)
+
+      val httpUrl = httpUrlBuilder.build()
+      socket = client.newWebSocket(Request.Builder().url(httpUrl).build(), Listener())
       try {
         connectDeferred.await()
       } catch (err: Throwable) {
