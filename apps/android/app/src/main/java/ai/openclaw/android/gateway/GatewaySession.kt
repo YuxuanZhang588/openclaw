@@ -193,14 +193,11 @@ class GatewaySession(
     suspend fun connect() {
       val scheme = if (tls != null) "wss" else "ws"
 
-      // Build HttpUrl directly using Builder to ensure port is preserved
-      val httpUrlBuilder = okhttp3.HttpUrl.Builder()
-        .scheme(scheme)
-        .host(endpoint.host)
-        .port(endpoint.port)
+      // Use java.net.URI to build the URL - it supports custom schemes like wss/ws
+      val uri = java.net.URI(scheme, null, endpoint.host, endpoint.port, null, null, null)
+      val url = uri.toString()
 
-      val httpUrl = httpUrlBuilder.build()
-      socket = client.newWebSocket(Request.Builder().url(httpUrl).build(), Listener())
+      socket = client.newWebSocket(Request.Builder().url(url).build(), Listener())
       try {
         connectDeferred.await()
       } catch (err: Throwable) {
