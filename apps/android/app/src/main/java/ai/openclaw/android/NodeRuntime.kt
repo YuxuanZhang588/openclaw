@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
 import android.os.SystemClock
+import android.util.Log
 import androidx.core.content.ContextCompat
 import ai.openclaw.android.chat.ChatController
 import ai.openclaw.android.chat.ChatMessage
@@ -563,6 +564,7 @@ class NodeRuntime(context: Context) {
   }
 
   fun connect(endpoint: GatewayEndpoint) {
+    Log.d("OpenClawDebug", "connect() called with endpoint: stableId=${endpoint.stableId}, host=${endpoint.host}, port=${endpoint.port}, name=${endpoint.name}")
     connectedEndpoint = endpoint
     operatorStatusText = "Connecting…"
     nodeStatusText = "Connecting…"
@@ -570,6 +572,7 @@ class NodeRuntime(context: Context) {
     val token = prefs.loadGatewayToken()
     val password = prefs.loadGatewayPassword()
     val tls = resolveTlsParams(endpoint)
+    Log.d("OpenClawDebug", "connect() passing endpoint to sessions with tls=${tls != null}")
     operatorSession.connect(endpoint, token, password, buildOperatorConnectOptions(), tls)
     nodeSession.connect(endpoint, token, password, buildNodeConnectOptions(), tls)
   }
@@ -605,10 +608,13 @@ class NodeRuntime(context: Context) {
   fun connectManual() {
     val host = manualHost.value.trim()
     val port = manualPort.value
+    Log.d("OpenClawDebug", "connectManual() called with host='$host', port=$port")
     if (host.isEmpty() || port <= 0 || port > 65535) {
+      Log.e("OpenClawDebug", "connectManual() validation failed: host.isEmpty()=${host.isEmpty()}, port=$port")
       _statusText.value = "Failed: invalid manual host/port"
       return
     }
+    Log.d("OpenClawDebug", "connectManual() validation passed, creating endpoint and connecting")
     connect(GatewayEndpoint.manual(host = host, port = port))
   }
 

@@ -1,5 +1,7 @@
 package ai.openclaw.android.gateway
 
+import android.util.Log
+
 data class GatewayEndpoint(
   val stableId: String,
   val name: String,
@@ -13,8 +15,9 @@ data class GatewayEndpoint(
   val tlsFingerprintSha256: String? = null,
 ) {
   companion object {
-    fun manual(host: String, port: Int): GatewayEndpoint =
-      GatewayEndpoint(
+    fun manual(host: String, port: Int): GatewayEndpoint {
+      Log.d("OpenClawDebug", "GatewayEndpoint.manual() called with host=$host, port=$port")
+      val endpoint = GatewayEndpoint(
         stableId = "manual|${host.lowercase()}|$port",
         name = "$host:$port",
         host = host,
@@ -22,5 +25,8 @@ data class GatewayEndpoint(
         tlsEnabled = false,
         tlsFingerprintSha256 = null,
       )
+      Log.d("OpenClawDebug", "Created manual endpoint: stableId=${endpoint.stableId}, host=${endpoint.host}, port=${endpoint.port}")
+      return endpoint
+    }
   }
 }
