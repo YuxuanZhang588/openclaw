@@ -10,6 +10,7 @@ import java.security.Signature
 import java.security.spec.PKCS8EncodedKeySpec
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 @Serializable
 data class DeviceIdentity(
@@ -44,9 +45,10 @@ class DeviceIdentityStore(context: Context) {
     return try {
       val privateKeyBytes = Base64.decode(identity.privateKeyPkcs8Base64, Base64.DEFAULT)
       val keySpec = PKCS8EncodedKeySpec(privateKeyBytes)
-      val keyFactory = KeyFactory.getInstance("Ed25519")
+      val bcProvider = BouncyCastleProvider()
+      val keyFactory = KeyFactory.getInstance("Ed25519", bcProvider)
       val privateKey = keyFactory.generatePrivate(keySpec)
-      val signature = Signature.getInstance("Ed25519")
+      val signature = Signature.getInstance("Ed25519", bcProvider)
       signature.initSign(privateKey)
       signature.update(payload.toByteArray(Charsets.UTF_8))
       base64UrlEncode(signature.sign())
@@ -97,7 +99,8 @@ class DeviceIdentityStore(context: Context) {
   }
 
   private fun generate(): DeviceIdentity {
-    val keyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair()
+    val bcProvider = BouncyCastleProvider()
+    val keyPair = KeyPairGenerator.getInstance("Ed25519", bcProvider).generateKeyPair()
     val spki = keyPair.public.encoded
     val rawPublic = stripSpkiPrefix(spki)
     val deviceId = sha256Hex(rawPublic)

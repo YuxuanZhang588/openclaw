@@ -82,6 +82,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
   val manualHost by viewModel.manualHost.collectAsState()
   val manualPort by viewModel.manualPort.collectAsState()
   val manualTls by viewModel.manualTls.collectAsState()
+  val gatewayToken by viewModel.gatewayToken.collectAsState()
   val canvasDebugStatusEnabled by viewModel.canvasDebugStatusEnabled.collectAsState()
   val statusText by viewModel.statusText.collectAsState()
   val serverName by viewModel.serverName.collectAsState()
@@ -92,6 +93,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
   val listState = rememberLazyListState()
   val (wakeWordsText, setWakeWordsText) = remember { mutableStateOf("") }
   val (advancedExpanded, setAdvancedExpanded) = remember { mutableStateOf(false) }
+  val (tokenText, setTokenText) = remember { mutableStateOf(gatewayToken) }
   val focusManager = LocalFocusManager.current
   var wakeWordsHadFocus by remember { mutableStateOf(false) }
   val deviceModel =
@@ -112,6 +114,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
     }
 
   LaunchedEffect(wakeWords) { setWakeWordsText(wakeWords.joinToString(", ")) }
+  LaunchedEffect(gatewayToken) { setTokenText(gatewayToken) }
   val commitWakeWords = {
     val parsed = WakeWords.parseIfChanged(wakeWordsText, wakeWords)
     if (parsed != null) {
@@ -408,6 +411,19 @@ fun SettingsSheet(viewModel: MainViewModel) {
             supportingContent = { Text("Pin the gateway certificate on first connect.") },
             trailingContent = { Switch(checked = manualTls, onCheckedChange = viewModel::setManualTls, enabled = manualEnabled) },
             modifier = Modifier.alpha(if (manualEnabled) 1f else 0.5f),
+          )
+
+          OutlinedTextField(
+            value = tokenText,
+            onValueChange = { v ->
+              setTokenText(v)
+              viewModel.setGatewayToken(v)
+            },
+            label = { Text("Gateway Token (optional)") },
+            placeholder = { Text("Paste your token here") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = manualEnabled,
+            singleLine = true,
           )
 
           val hostOk = manualHost.trim().isNotEmpty()

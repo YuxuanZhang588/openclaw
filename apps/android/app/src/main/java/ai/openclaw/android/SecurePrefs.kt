@@ -71,6 +71,10 @@ class SecurePrefs(context: Context) {
     MutableStateFlow(prefs.getBoolean("gateway.manual.tls", true))
   val manualTls: StateFlow<Boolean> = _manualTls
 
+  private val _gatewayToken =
+    MutableStateFlow(prefs.getString("gateway.token", "") ?: "")
+  val gatewayToken: StateFlow<String> = _gatewayToken
+
   private val _lastDiscoveredStableId =
     MutableStateFlow(
       prefs.getString("gateway.lastDiscoveredStableID", "") ?: "",
@@ -143,15 +147,29 @@ class SecurePrefs(context: Context) {
     _manualTls.value = value
   }
 
+  fun setGatewayToken(value: String) {
+    val trimmed = value.trim()
+    prefs.edit { putString("gateway.token", trimmed) }
+    _gatewayToken.value = trimmed
+  }
+
   fun setCanvasDebugStatusEnabled(value: Boolean) {
     prefs.edit { putBoolean("canvas.debugStatusEnabled", value) }
     _canvasDebugStatusEnabled.value = value
   }
 
   fun loadGatewayToken(): String? {
+    // Try StateFlow first (updated by UI)
+    val fromFlow = _gatewayToken.value.trim()
+    if (fromFlow.isNotEmpty()) return fromFlow
+    
+    // Fallback: check per-instance token from SharedPreferences
     val key = "gateway.token.${_instanceId.value}"
     val stored = prefs.getString(key, null)?.trim()
-    return stored?.takeIf { it.isNotEmpty() }
+    if (stored?.isNotEmpty() == true) return stored
+    
+    // Final fallback: check for token file
+    return loadGatewayTokenFromFile()
   }
 
   fun saveGatewayToken(token: String) {
@@ -268,6 +286,17 @@ class SecurePrefs(context: Context) {
       WakeWords.sanitize(decoded, defaultWakeWords)
     } catch (_: Throwable) {
       defaultWakeWords
+    }
+  }
+
+  private fun loadGatewayTokenFromFile(): String? {
+    return try {
+      val tokenFile = File(appContext.filesDir, "openclaw/gateway/token")
+      if (!tokenFile.exists()) return null
+      val content = tokenFile.readText(Charsets.UTF_8).trim()
+      content.takeIf { it.isNotEmpty() }
+    } catch (_: Throwable) {
+      null
     }
   }
 
